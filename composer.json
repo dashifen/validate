@@ -1,0 +1,25 @@
+{
+    "name": "dashifen/validator",
+    "description": "An interface and abstract class useful for the production of objects which validate data.",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "David Dashifen Kees",
+            "email": "dashifen@dashifen.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "Dashifen\\Validator\\": "src"
+        }
+    },
+    "require": {
+        "php": ">=7.3"
+    },
+    "scripts": {
+        "post-update-cmd": "composer dumpautoload --optimize",
+        "post-install-cmd": "composer dumpautoload --optimize"
+    }
+}
