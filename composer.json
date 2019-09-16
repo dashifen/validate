@@ -16,9 +16,9 @@
         }
     },
     "require": {
-        "ralouphie/mimey": "^2.1",
-        "php": ">=7.3",
         "dashifen/exception": "^1.1",
+        "ralouphie/mimey": "^2.1",
+        "php": ">=7.3"
     },
     "suggest": {
         "ext-fileinfo": "*"
