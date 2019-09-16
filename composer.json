@@ -16,7 +16,12 @@
         }
     },
     "require": {
-        "php": ">=7.3"
+        "ralouphie/mimey": "^2.1",
+        "php": ">=7.3",
+        "dashifen/exception": "^1.1",
+    },
+    "suggest": {
+        "ext-fileinfo": "*"
     },
     "scripts": {
         "post-update-cmd": "composer dumpautoload --optimize",
