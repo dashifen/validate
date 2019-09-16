@@ -27,4 +27,18 @@ interface ValidatorInterface {
    * @return bool
    */
   public function isValid (string $field, $value): bool;
+
+  /**
+   * isValidArray
+   *
+   * Returns true if each value within the array is valid based on the a
+   * test dependent on the value's field label.
+   *
+   * @param string $field
+   * @param array  $values
+   * @param array  $parameters
+   *
+   * @return bool
+   */
+  public function isValidArray(string $field, array $values, ...$parameters): bool;
 }

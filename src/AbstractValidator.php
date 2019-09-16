@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpComposerExtensionStubsInspection */
+
 namespace Dashifen\Validator;
 
 use finfo;
@@ -44,17 +46,21 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   public function isValid (string $field, $value): bool {
-
-    // this is a somewhat opinionated implementation.  it assumes that if we
-    // can't validate our data, that we shouldn't report that it's invalid as
-    // that's likely to cause an error when we can't be sure that it's
-    // warranted.
-
     if ($this->canValidate($field)) {
-      return $this->isArray($value)
-        ? $this->isValidArray($value, $this->getValidationMethod($field))
-        : $this->{$this->getValidationMethod($field)}($value);
+
+      // if we can validate $field type data, then here we only need to see
+      // if it's an array or not.  if it's not, we can call our validation
+      // method with our $value and directly return the results.  if it's
+      // an array, we'll call our method for that below.
+
+      return !$this->isArray($value)
+        ? $this->{$this->getValidationMethod($field)}($value)
+        : $this->isValidArray($field, $value);
     }
+
+    // if we can't validate $field type data, then we don't want to report
+    // that the data is invalid when we actually didn't do anything at all.
+    // thus, if we're here, we just return true.
 
     return true;
   }
@@ -80,34 +86,40 @@ abstract class AbstractValidator implements ValidatorInterface {
    * function to each value within it.  We return true if every value passes
    * validation; false otherwise.
    *
+   * @param string $field
    * @param array  $values
-   * @param string $function
    * @param array  $parameters
    *
    * @return bool
    */
-  protected function isValidArray (array $values, string $function, ...$parameters): bool {
-    foreach ($values as $value) {
+  public function isValidArray (string $field, array $values, ...$parameters): bool {
+    if ($this->canValidate($field)) {
+      $function = $this->getValidationMethod($field);
+      foreach ($values as $value) {
 
-      // for each $value in the array, we see if it passes the
-      // specified function.  because not all validators require
-      // additional parameters, we test to see if we should pass
-      // that information along.
+        // for each $value in the array, we see if it passes the
+        // specified function.  because not all validators require
+        // additional parameters, we test to see if we should pass
+        // that information along.
 
-      $passed = $this->isNotEmptyArray($parameters)
-        ? $this->{$function}($value, ...$parameters)
-        : $this->{$function}($value);
+        $passed = $this->isNotEmptyArray($parameters)
+          ? $this->{$function}($value, ...$parameters)
+          : $this->{$function}($value);
 
-      // if something didn't pass the test, we return false immediately.
-      // this should save us a few nanoseconds.
+        // if something didn't pass the test, we return false immediately.
+        // this should save us a few nanoseconds.
 
-      if (!$passed) {
-        return false;
+        if (!$passed) {
+          return false;
+        }
       }
     }
 
-    // if we made it to the end of the array and everything passed, then
-    // we end up here.  that means the array is valid, so we return true.
+    // if we made it here either (a) everything in the array passed or (b)
+    // we can't actually validate $field type data at all.  in the first case,
+    // we're good to go!  in the latter case, we don't want to report failure
+    // in situations where we did nothing.  so for both of these case, we
+    // can return true.
 
     return true;
   }
@@ -122,9 +134,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isFloat ($value): bool {
-    return !$this->isArray($value)
-      ? $this->isNumber($value) && !$this->isInteger($value)
-      : $this->isValidArray($value, "isFloat");
+    return $this->isNumber($value) && !$this->isInteger($value);
   }
 
   /**
@@ -137,9 +147,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isNumber ($value): bool {
-    return !$this->isArray($value)
-      ? is_numeric($value)
-      : $this->isValidArray($value, "isNumber");
+    return is_numeric($value);
   }
 
   /**
@@ -160,9 +168,7 @@ abstract class AbstractValidator implements ValidatorInterface {
     // false.  by using floor(), instead, we get a true result in
     // such cases.
 
-    return !$this->isArray($value)
-      ? $this->isNumber($value) && floor($value) == $value
-      : $this->isValidArray($value, "isInteger");
+    return $this->isNumber($value) && floor($value) == $value;
   }
 
   /**
@@ -175,9 +181,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isPositive ($value): bool {
-    return !$this->isArray($value)
-      ? $this->isNumber($value) && $value > 0
-      : $this->isValidArray($value, "isPositive");
+    return $this->isNumber($value) && $value > 0;
   }
 
   /**
@@ -190,9 +194,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isNegative ($value): bool {
-    return !$this->isArray($value)
-      ? $this->isNumber($value) && $value < 0
-      : $this->isValidArray($value, "isNegative");
+    return $this->isNumber($value) && $value < 0;
   }
 
   /**
@@ -210,9 +212,7 @@ abstract class AbstractValidator implements ValidatorInterface {
     // because 0.0 === 0 is actually false.  but, 0.0 == 0 is
     // true, so that's our comparison.
 
-    return !$this->isArray($value)
-      ? $this->isNumber($value) && $value == 0
-      : $this->isValidArray($value, "isZero");
+    return $this->isNumber($value) && $value == 0;
   }
 
   /**
@@ -229,9 +229,7 @@ abstract class AbstractValidator implements ValidatorInterface {
     // sometimes it's handy to test that something is not zero, just
     // like we want to test above that it is.
 
-    return !$this->isArray($value)
-      ? $this->isNumber($value) && !$this->isZero($value)
-      : $this->isValidArray($value, "isNonZero");
+    return $this->isNumber($value) && !$this->isZero($value);
   }
 
   /**
@@ -246,9 +244,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isNotTooLong ($value, int $maxLength): bool {
-    return !$this->isArray($value)
-      ? $this->isString($value) && strlen($value) <= $maxLength
-      : $this->isValidArray($value, "isNotTooLong", $maxLength);
+    return $this->isString($value) && strlen($value) <= $maxLength;
   }
 
   /**
@@ -261,9 +257,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isString ($value): bool {
-    return !$this->isArray($value)
-      ? is_string($value)
-      : $this->isValidArray($value, "isString");
+    return is_string($value);
   }
 
   /**
@@ -388,16 +382,18 @@ abstract class AbstractValidator implements ValidatorInterface {
     // with nothing and see if the length of that string is zero.
 
     return $this->isString($value) && strlen(preg_replace("/\s+/", "", $value)) === 0;
-  }/**
- * isTime
- *
- * Returns true if $value appears to be a time in the specified format.
- *
- * @param        $value
- * @param string $format
- *
- * @return bool
- */
+  }
+
+  /**
+   * isTime
+   *
+   * Returns true if $value appears to be a time in the specified format.
+   *
+   * @param        $value
+   * @param string $format
+   *
+   * @return bool
+   */
   protected function isTime ($value, string $format = "g:i A"): bool {
 
     // times can be validated just like dates; we just specify our
@@ -417,29 +413,27 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isDate ($value, $format = "m/d/Y"): bool {
-    return !$this->isArray($value)
 
-      // strtotime() should give us a timestamp or false.  if it's
-      // false, then the date becomes 12/31/1969 00:00:00.  since they
-      // probably didn't enter that date, it wont' match and the
-      // validation fails.
+    // strtotime() should give us a timestamp or false.  if it's
+    // false, then the date becomes 12/31/1969 00:00:00.  since they
+    // probably didn't enter that date, it won't match and the
+    // validation fails.
 
-      ? date($format, strtotime($value)) === $value
-      : $this->isValidArray($value, "date", $format);
-  }/**
- * isEmail
- *
- * Returns true if $value passes through filter_var's FILTER_VALIDATE_EMAIL
- * validation.
- *
- * @param $value
- *
- * @return bool
- */
+    return date($format, strtotime($value)) === $value;
+  }
+
+  /**
+   * isEmail
+   *
+   * Returns true if $value passes through filter_var's FILTER_VALIDATE_EMAIL
+   * validation.
+   *
+   * @param $value
+   *
+   * @return bool
+   */
   protected function isEmail ($value): bool {
-    return !$this->isArray($value)
-      ? (bool) filter_var($value, FILTER_VALIDATE_EMAIL)
-      : $this->isValidArray($value, "email");
+    return (bool) filter_var($value, FILTER_VALIDATE_EMAIL);
   }
 
   /**
@@ -452,19 +446,19 @@ abstract class AbstractValidator implements ValidatorInterface {
    * @return bool
    */
   protected function isUrl ($value): bool {
-    return !$this->isArray($value)
-      ? (bool) filter_var($value, FILTER_VALIDATE_URL)
-      : $this->isValidArray($value, "url");
-  }/**
- * isFileNotTooLarge
- *
- * Returns true if $name is a file and if it's file size is less than $size.
- *
- * @param string $name
- * @param int    $size
- *
- * @return bool
- */
+    return (bool) filter_var($value, FILTER_VALIDATE_URL);
+  }
+
+  /**
+   * isFileNotTooLarge
+   *
+   * Returns true if $name is a file and if it's file size is less than $size.
+   *
+   * @param string $name
+   * @param int    $size
+   *
+   * @return bool
+   */
   protected function isFileNotTooLarge (string $name, int $size): bool {
     $valid = false;
 
