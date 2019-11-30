@@ -16,8 +16,8 @@
         }
     },
     "require": {
-        "dashifen/exception": "^1.1",
-        "ralouphie/mimey": "^2.1",
+        "dashifen/exception": "^1",
+        "ralouphie/mimey": "^2",
         "php": ">=7.3"
     },
     "suggest": {
