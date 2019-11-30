@@ -2,7 +2,7 @@
     "name": "dashifen/validator",
     "description": "An interface and abstract class useful for the production of objects which validate data.",
     "type": "project",
-    "license": "The Hippocratic License",
+    "license": "MIT",
     "authors": [
         {
             "name": "David Dashifen Kees",
