@@ -34,9 +34,9 @@ abstract class AbstractValidator implements ValidatorInterface {
   abstract protected function getValidationMethod (string $field): string;
 
   /**
-   * transform
+   * isValid
    *
-   * Passed the value through a transformation based on the field name.
+   * Passed the value through a validation based on the field name.
    *
    * @param string $field
    * @param mixed  $value
