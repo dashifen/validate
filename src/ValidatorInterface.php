@@ -14,7 +14,7 @@ interface ValidatorInterface
      *
      * @return bool
      */
-    public function canValidate (string $field): bool;
+    public function canValidate(string $field): bool;
     
     /**
      * isValid
@@ -27,5 +27,18 @@ interface ValidatorInterface
      *
      * @return bool
      */
-    public function isValid (string $field, $value): bool;
+    public function isValid(string $field, $value): bool;
+    
+    /**
+     * isValidPair
+     *
+     * Sometimes, a value's validity is determined by its field.  This method
+     * returns true based on such a relationship.
+     *
+     * @param string $field
+     * @param mixed  $value
+     *
+     * @return bool
+     */
+    public function isValidPair(string $field, $value): bool;
 }
