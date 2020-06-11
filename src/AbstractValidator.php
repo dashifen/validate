@@ -7,9 +7,9 @@ use Mimey\MimeTypes;
 
 abstract class AbstractValidator implements ValidatorInterface {
   /**
-   * canTransform
+   * canValidate
    *
-   * Returns true if this object can transform data identified by the field
+   * Returns true if this object can validate data identified by the field
    * label.
    *
    * @param string $field
@@ -36,7 +36,7 @@ abstract class AbstractValidator implements ValidatorInterface {
   /**
    * isValid
    *
-   * Passed the value through a validation based on the field name.
+   * Passed the value through a validator based on the field name.
    *
    * @param string $field
    * @param mixed  $value
@@ -154,7 +154,7 @@ abstract class AbstractValidator implements ValidatorInterface {
    */
   protected function isInteger ($value): bool {
 
-    // at first glance, we could use intval() instead of floor().
+    // at first glance, we could use intval instead of floor.
     // then, we could also tighten up our comparison by using ===
     // instead of ==.  but, intval("4.0") === "4.0" would report
     // false.  by using floor(), instead, we get a true result in
@@ -419,7 +419,7 @@ abstract class AbstractValidator implements ValidatorInterface {
   protected function isDate ($value, $format = "m/d/Y"): bool {
     return !$this->isArray($value)
 
-      // strtotime() should give us a timestamp or false.  if it's
+      // strtotime should give us a timestamp or false.  if it's
       // false, then the date becomes 12/31/1969 00:00:00.  since they
       // probably didn't enter that date, it wont' match and the
       // validation fails.

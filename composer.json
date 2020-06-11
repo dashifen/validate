@@ -1,30 +1,32 @@
 {
-    "name": "dashifen/validator",
-    "description": "An interface and abstract class useful for the production of objects which validate data.",
-    "type": "project",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "David Dashifen Kees",
-            "email": "dashifen@dashifen.com"
-        }
-    ],
-    "minimum-stability": "stable",
-    "autoload": {
-        "psr-4": {
-            "Dashifen\\Validator\\": "src"
-        }
-    },
-    "require": {
-        "dashifen/exception": "^1",
-        "ralouphie/mimey": "^2",
-        "php": ">=7.3"
-    },
-    "suggest": {
-        "ext-fileinfo": "*"
-    },
-    "scripts": {
-        "post-update-cmd": "composer dumpautoload --optimize",
-        "post-install-cmd": "composer dumpautoload --optimize"
+  "name": "dashifen/validator",
+  "description": "An interface and abstract class useful for the production of objects which validate data.",
+  "minimum-stability": "stable",
+  "type": "project",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "David Dashifen Kees",
+      "email": "dashifen@dashifen.com",
+      "role": "developer"
     }
+  ],
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  },
+  "autoload": {
+    "psr-4": {
+      "Dashifen\\Validator\\": "src"
+    }
+  },
+  "require": {
+    "php": ">=7.3",
+    "ext-fileinfo": "*",
+    "dashifen/exception": "^1",
+    "ralouphie/mimey": "^2"
+  },
+  "suggest": {
+    "ext-fileinfo": "*"
+  }
 }
