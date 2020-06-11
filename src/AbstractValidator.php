@@ -121,25 +121,27 @@ abstract class AbstractValidator implements ValidatorInterface
      * isValidPair
      *
      * Sometimes, a value's validity is determined by its field.  This method
-     * returns true based on such a relationship.
+     * returns true based on such a relationship using the $pair parameter to
+     * identify the validation method to be used.
      *
+     * @param string $pair
      * @param string $field
      * @param mixed  $value
      *
      * @return bool
      */
-    public function isValidPair(string $field, $value): bool
+    public function isValidPair(string $pair, string $field, $value): bool
     {
         // like isValid above, this is opinionated in that the inability to
         // validate this pair shouldn't necessarily be seen as a marker of its
-        // invalidity.  the chief difference between this method and isValid
-        // above is that this one passes both the field and value parameters to
-        // the validation method.
+        // invalidity.  note that we use $pair to identify if and how to check
+        // these data so that we can pass both $field and $value to the
+        // identified method.
         
-        if ($this->canValidate($field)) {
+        if ($this->canValidate($pair)) {
             return $this->isArray($value)
-                ? $this->isValidArrayPair($field, $value, $this->getValidationMethod($field))
-                : $this->{$this->getValidationMethod($field)}($field, $value);
+                ? $this->isValidArrayPair($field, $value, $this->getValidationMethod($pair))
+                : $this->{$this->getValidationMethod($pair)}($field, $value);
         }
         
         return true;

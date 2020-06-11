@@ -33,12 +33,14 @@ interface ValidatorInterface
      * isValidPair
      *
      * Sometimes, a value's validity is determined by its field.  This method
-     * returns true based on such a relationship.
+     * returns true based on such a relationship using the $pair parameter to
+     * identify the validation method to be used.
      *
+     * @param string $pair
      * @param string $field
      * @param mixed  $value
      *
      * @return bool
      */
-    public function isValidPair(string $field, $value): bool;
+    public function isValidPair(string $pair, string $field, $value): bool;
 }
