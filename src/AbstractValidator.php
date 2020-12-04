@@ -52,8 +52,6 @@ abstract class AbstractValidator implements ValidatorInterface
     // value.  then, as we validate fields, we'll set these values to true.
     
     $this->requirements = array_fill_keys($requirements, false);
-    
-    echo print_r($this->requirements, true);
   }
   
   /**
@@ -273,8 +271,6 @@ abstract class AbstractValidator implements ValidatorInterface
     // because it rewinds the internal array pointer and returns the first
     // value in it and because it's much faster than array_shift.
    
-    echo print_r($this->requirements, true);
-    
     $completeness = array_unique($this->requirements);
     return sizeof($completeness) === 1 && reset($completeness);
   }
@@ -324,11 +320,10 @@ abstract class AbstractValidator implements ValidatorInterface
   protected function isInteger($value): bool
   {
     
-    // at first glance, we could use intval instead of floor.
-    // then, we could also tighten up our comparison by using ===
-    // instead of ==.  but, intval("4.0") === "4.0" would report
-    // false.  by using floor(), instead, we get a true result in
-    // such cases.
+    // at first glance, we could use intval instead of floor.  then, we could
+    // also tighten up our comparison by using === instead of ==.  but,
+    // intval("4.0") === "4.0" would report false.  by using floor(), instead,
+    // we get a true result in such cases.
     
     return !$this->isArray($value)
       ? $this->isNumber($value) && floor($value) == $value
