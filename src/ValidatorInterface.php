@@ -5,6 +5,19 @@ namespace Dashifen\Validator;
 interface ValidatorInterface
 {
   /**
+   * setRequirements
+   *
+   * When a validator is used to determine the complete-ness of a data set,
+   * the requirements for that state are described to it here.  The array
+   * parameter should describe the names of fields that this object can
+   * validate and must both encounter and find valid during the validation
+   * process.
+   *
+   * @param array $requirements
+   */
+  public function setRequirements(array $requirements): void;
+  
+  /**
    * canValidate
    *
    * Returns true if this object can validate data identified by the field
@@ -43,4 +56,17 @@ interface ValidatorInterface
    * @return bool
    */
   public function isValidPair(string $pair, string $field, $value): bool;
+  
+  /**
+   * isComplete
+   *
+   * A validator determines a data set to be complete if, after it validates
+   * the data within the set, all required items in the set have been found and
+   * are valid.  This method returns true when that is the case, but it returns
+   * false otherwise, i.e. when either the validator did not encounter a
+   * required item or at least one required item was invalid.
+   *
+   * @return bool
+   */
+  public function isComplete(): bool;
 }

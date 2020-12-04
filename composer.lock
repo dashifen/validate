@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d9fa049be0f397b6e6db43505209aeb5",
+    "content-hash": "97d3374f2897a29b237df96649295e06",
     "packages": [
         {
             "name": "dashifen/exception",
@@ -42,6 +42,10 @@
                 }
             ],
             "description": "a base class for exceptions in Dashifen's other work",
+            "support": {
+                "issues": "https://github.com/dashifen/exception/issues",
+                "source": "https://github.com/dashifen/exception/tree/1.2.0"
+            },
             "time": "2019-12-12T14:26:49+00:00"
         },
         {
@@ -82,6 +86,10 @@
                 }
             ],
             "description": "PHP package for converting file extensions to MIME types and vice versa.",
+            "support": {
+                "issues": "https://github.com/ralouphie/mimey/issues",
+                "source": "https://github.com/ralouphie/mimey/tree/develop"
+            },
             "time": "2019-03-08T08:49:03+00:00"
         }
     ],
@@ -92,7 +100,9 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=7.3"
+        "php": ">=7.3",
+        "ext-fileinfo": "*"
     },
-    "platform-dev": []
+    "platform-dev": [],
+    "plugin-api-version": "2.0.0"
 }

@@ -8,6 +8,55 @@ use Mimey\MimeTypes;
 abstract class AbstractValidator implements ValidatorInterface
 {
   /**
+   * @var bool[]
+   */
+  protected $requirements;
+  
+  /**
+   * setRequirements
+   *
+   * When a validator is used to determine the complete-ness of a data set,
+   * the requirements for that state are described to it here.  The array
+   * parameter should describe the names of fields that this object can
+   * validate and must both encounter and find valid during the validation
+   * process.
+   *
+   * @param array $requirements
+   *
+   * @return void
+   * @throws ValidatorException
+   */
+  public function setRequirements(array $requirements): void
+  {
+    // each member of our requirements array should be a string.  we assume
+    // those strings describe the names of fields that we're about to try and
+    // validate.  we'll check to be sure that each of the requirements we
+    // received are not empty, they are strings, and those strings are not
+    // numbers.
+    
+    foreach ($requirements as $requirement) {
+      if (
+        $this->isEmpty($requirements)
+        || !$this->isString($requirements)
+        || $this->isNumber($requirements)
+      ) {
+        throw new ValidatorException(
+          'Invalid requirement: ' . $requirement,
+          ValidatorException::INVALID_REQUIREMENT
+        );
+      }
+    }
+    
+    // if we're here, then all of our requirements were valid.  therefore, we
+    // we'll prepare a map that links requirement names to a Boolean false
+    // value.  then, as we validate fields, we'll set these values to true.
+    
+    $this->requirements = array_fill_keys($requirements, false);
+    
+    echo print_r($this->requirements, true);
+  }
+  
+  /**
    * canValidate
    *
    * Returns true if this object can validate data identified by the field
@@ -47,19 +96,28 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   public function isValid(string $field, $value): bool
   {
-    
     // this is a somewhat opinionated implementation.  it assumes that if we
     // can't validate our data, that we shouldn't report that it's invalid as
     // that's likely to cause an error when we can't be sure that it's
-    // warranted.
+    // warranted.  if a concrete extension of this object wants to reverse
+    // this opinion, it's free to do so :)
     
+    $isValid = true;
     if ($this->canValidate($field)) {
-      return $this->isArray($value)
+      $isValid = $this->isArray($value)
         ? $this->isValidArray($value, $this->getValidationMethod($field))
         : $this->{$this->getValidationMethod($field)}($value);
     }
     
-    return true;
+    if ($isValid && array_key_exists($field, $this->requirements)) {
+      
+      // if we have validated this field and if this field is required, then we
+      // want to set the flag that indicates this requirement has been met.
+      
+      $this->requirements[$field] = true;
+    }
+    
+    return $isValid;
   }
   
   /**
@@ -189,6 +247,36 @@ abstract class AbstractValidator implements ValidatorInterface
     // we end up here.  that means the array is valid, so we return true.
     
     return true;
+  }
+  
+  /**
+   * isComplete
+   *
+   * A validator determines a data set to be complete if, after it validates
+   * the data within the set, all required items in the set have been found and
+   * are valid.  This method returns true when that is the case, but it returns
+   * false otherwise, i.e. when either the validator did not encounter a
+   * required item or at least one required item was invalid.
+   *
+   * @return bool
+   */
+  public function isComplete(): bool
+  {
+    // as we validated fields above, when we encountered a required one, we
+    // switched the flags within the requirements property from false to true.
+    // because there's only two Boolean values, when we pass that property
+    // through the array_unique function, the results will have either one or
+    // two values.  if it has only one value, then that value must be either
+    // true or false.  so, if we have one value and that value is true, then
+    // our data set is complete.  otherwise, there must be at least one false
+    // in the set somewhere and it's incomplete.  we use the reset function
+    // because it rewinds the internal array pointer and returns the first
+    // value in it and because it's much faster than array_shift.
+   
+    echo print_r($this->requirements, true);
+    
+    $completeness = array_unique($this->requirements);
+    return sizeof($completeness) === 1 && reset($completeness);
   }
   
   /**
