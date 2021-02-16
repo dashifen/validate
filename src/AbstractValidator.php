@@ -13,6 +13,11 @@ abstract class AbstractValidator implements ValidatorInterface
   protected $requirements;
   
   /**
+   * @var string[]
+   */
+  protected $messages = [];
+  
+  /**
    * setRequirements
    *
    * When a validator is used to determine the complete-ness of a data set,
@@ -66,7 +71,20 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   public function canValidate(string $field): bool
   {
-    return method_exists($this, $this->getValidationMethod($field));
+    $canValidate = method_exists($this, $this->getValidationMethod($field));
+    
+    if ($canValidate) {
+      
+      // if we can validate this field, then we may want to store the results
+      // of our validity testing.  we'll assume that all values are valid for
+      // the moment.  in the extension of this object, if it wants to use this
+      // feature, it can replace these messages with other data that's more
+      // specific to its needs.
+      
+      $messages[$field] = 'This field has a valid value.';
+    }
+    
+    return $canValidate;
   }
   
   /**
@@ -245,6 +263,43 @@ abstract class AbstractValidator implements ValidatorInterface
     // we end up here.  that means the array is valid, so we return true.
     
     return true;
+  }
+  
+  /**
+   * getValidationMessages
+   *
+   * As the validator does its work, it compiles a set of messages describing
+   * the results of its efforts.  Typically, these can be used as error or
+   * warning messages, but perhaps a success message can use our test results,
+   * too.  This method returns the entire set of messages.
+   *
+   * @return array
+   */
+  public function getValidationMessages(): array
+  {
+    return $this->messages;
+  }
+  
+  /**
+   * getValidationMessage
+   *
+   * This method returns a specific validation message.
+   *
+   * @param string $field
+   *
+   * @return string
+   * @throws ValidatorException
+   */
+  public function getValidationMessage(string $field): string
+  {
+    if (!array_key_exists($field, $this->messages)) {
+      throw new ValidatorException(
+        'Unknown field: ' . $field,
+        ValidatorException::UNKNOWN_FIELD
+      );
+    }
+      
+    return $this->messages[$field];
   }
   
   /**
