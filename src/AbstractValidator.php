@@ -10,7 +10,7 @@ abstract class AbstractValidator implements ValidatorInterface
   /**
    * @var bool[]
    */
-  protected $requirements;
+  protected $requirements = [];
   
   /**
    * @var string[]
