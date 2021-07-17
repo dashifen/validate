@@ -374,7 +374,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isInteger($value): bool
   {
-    
     // at first glance, we could use intval instead of floor.  then, we could
     // also tighten up our comparison by using === instead of ==.  but,
     // intval("4.0") === "4.0" would report false.  by using floor(), instead,
@@ -428,7 +427,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isZero($value): bool
   {
-    
     // like when we tested our integer, we won't use === here
     // because 0.0 === 0 is actually false.  but, 0.0 == 0 is
     // true, so that's our comparison.
@@ -449,7 +447,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isNonZero($value): bool
   {
-    
     // sometimes it's handy to test that something is not zero, just
     // like we want to test above that it is.
     
@@ -616,7 +613,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isEmptyString($value): bool
   {
-    
     // for our purposes, being comprised entirely of whitespace is
     // just as good as being empty.  so, we replace \s characters
     // with nothing and see if the length of that string is zero.
@@ -636,7 +632,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isTime($value, string $format = "g:i A"): bool
   {
-    
     // times can be validated just like dates; we just specify our
     // format when we call the other function.
     
@@ -712,7 +707,6 @@ abstract class AbstractValidator implements ValidatorInterface
   protected function isFileNotTooLarge(string $name, int $size): bool
   {
     $valid = false;
-    
     if ($this->isUploadedFile($name)) {
       
       // now that we know this file exists, we'll see if it's size is
@@ -737,7 +731,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isUploadedFile(string $name): bool
   {
-    
     // the existence of an uploaded file is determined by the existence
     // of the $name index within $_FILES.  so, this is a problem for
     // isset().
@@ -758,19 +751,42 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isUploadedFileTypeValid(string $name, ...$types): bool
   {
-    $valid = false;
+    // first, PHP will make sure that $name identifies an uploaded file.  if
+    // it doesn't, the && operation is short circuited and we return false.
+    // if it is, then we call the method below passing it the path to that
+    // uploaded file as well as our list of types and it'll take over from
+    // there.
     
-    if ($this->isUploadedFile($name)) {
-      $path = $_FILES[$name]["tmp_name"];
+    return $this->isUploadedFile($name)
+      && $this->isFileTypeValid($_FILES[$name]["tmp_name"], $types);
+  }
+  
+  /**
+   * isFileTypeValid
+   *
+   * Given the name of a file, checks to see if its type is in the list of
+   * types.  Unlike the above method, this one is not required to be a recently
+   * uploaded file.
+   *
+   * @param string $name
+   * @param array  $types
+   *
+   * @return bool
+   * @throws ValidatorException
+   */
+  protected function isFileTypeValid(string $name, ...$types): bool
+  {
+    $valid = false;
+    if (is_file($name)) {
       
-      // the list of $types has MIME types against which we need to
-      // test the uploaded file's type.  we'll have the Mimey object
-      // to get its type since we can't always rely on the file info
-      // extension being available.
+      // the list of $types has MIME types against which we need to test the
+      // uploaded file's type.  if the PHP file info extension is available to
+      // us, we'll prefer to use that.  but, since not all servers will have it
+      // enabled, we'll fallback on the MimeMap dependency.
       
       $valid = class_exists("finfo")
-        ? $this->checkFileTypeWithFinfo($path, $types)
-        : $this->checkFileTypeWithMimeMap($path, $types);
+        ? $this->checkFileTypeWithFinfo($name, $types)
+        : $this->checkFileTypeWithMimeMap($name, $types);
     }
     
     return $valid;
@@ -845,7 +861,7 @@ abstract class AbstractValidator implements ValidatorInterface
       // there is any intersection between the possible types and the valid
       // types that we received as our second parameter, this file's type is
       // valid.
-  
+      
       $possibleTypes = (new Extension($extension))->getTypes(true);
       return sizeof(array_intersect($types, $possibleTypes)) !== 0;
     } catch (MappingException $mappingException) {
@@ -862,34 +878,5 @@ abstract class AbstractValidator implements ValidatorInterface
         $mappingException
       );
     }
-  }
-  
-  /**
-   * isFileTypeValid
-   *
-   * Given the name of a file, checks to see if its type is in the list of
-   * types.  Unlike the above method, this one is not required to be a recently
-   * uploaded file.
-   *
-   * @param string $name
-   * @param array  $types
-   *
-   * @return bool
-   * @throws ValidatorException
-   */
-  protected function isFileTypeValid(string $name, ...$types): bool
-  {
-    $valid = false;
-    if (is_file($name)) {
-      
-      // just like above, if we have access to the PHP finfo extension, we'll
-      // use it.  otherwise, we'll fall back on the MimeMap package.
-      
-      $valid = class_exists("finfo")
-        ? $this->checkFileTypeWithFinfo($name, $types)
-        : $this->checkFileTypeWithMimeMap($name, $types);
-    }
-    
-    return $valid;
   }
 }
