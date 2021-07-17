@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "97d3374f2897a29b237df96649295e06",
+    "content-hash": "58858a03dcda8769aa7e33e11b30579f",
     "packages": [
         {
             "name": "dashifen/exception",
@@ -49,48 +49,63 @@
             "time": "2019-12-12T14:26:49+00:00"
         },
         {
-            "name": "ralouphie/mimey",
-            "version": "2.1.0",
+            "name": "fileeye/mimemap",
+            "version": "1.1.5",
             "source": {
                 "type": "git",
-                "url": "https://github.com/ralouphie/mimey.git",
-                "reference": "8f74e6da73f9df7bd965e4e123f3d8fb9acb89ba"
+                "url": "https://github.com/FileEye/MimeMap.git",
+                "reference": "9efaad84adce38f2ee49331b2bd684c83fd9aa3b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ralouphie/mimey/zipball/8f74e6da73f9df7bd965e4e123f3d8fb9acb89ba",
-                "reference": "8f74e6da73f9df7bd965e4e123f3d8fb9acb89ba",
+                "url": "https://api.github.com/repos/FileEye/MimeMap/zipball/9efaad84adce38f2ee49331b2bd684c83fd9aa3b",
+                "reference": "9efaad84adce38f2ee49331b2bd684c83fd9aa3b",
                 "shasum": ""
             },
             "require": {
-                "php": "^5.4|^7.0"
+                "php": ">=5.4"
             },
             "require-dev": {
-                "php-coveralls/php-coveralls": "^1.1",
-                "phpunit/phpunit": "^4.8 || ^5.7 || ^6.5"
+                "phpunit/phpunit": "<10",
+                "sebastian/comparator": "*",
+                "sebastian/diff": "*",
+                "squizlabs/php_codesniffer": "*",
+                "symfony/console": "*",
+                "symfony/filesystem": "*",
+                "symfony/var-dumper": "*",
+                "symfony/yaml": "*"
             },
+            "bin": [
+                "bin/fileeye-mimemap"
+            ],
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
-                    "Mimey\\": "src/"
+                    "FileEye\\MimeMap\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
-                "MIT"
+                "LGPL-3.0-or-later"
             ],
-            "authors": [
-                {
-                    "name": "Ralph Khattar",
-                    "email": "ralph.khattar@gmail.com"
-                }
+            "description": "A PHP library to handle MIME Content-Type fields and their related file extensions.",
+            "homepage": "https://github.com/FileEye/MimeMap",
+            "keywords": [
+                "mime",
+                "mime-database",
+                "mime-parser",
+                "mime-type"
             ],
-            "description": "PHP package for converting file extensions to MIME types and vice versa.",
             "support": {
-                "issues": "https://github.com/ralouphie/mimey/issues",
-                "source": "https://github.com/ralouphie/mimey/tree/develop"
+                "issues": "https://github.com/FileEye/MimeMap/issues",
+                "source": "https://github.com/FileEye/MimeMap/tree/1.1.5"
             },
-            "time": "2019-03-08T08:49:03+00:00"
+            "time": "2021-04-02T20:21:45+00:00"
         }
     ],
     "packages-dev": [],
@@ -104,5 +119,5 @@
         "ext-fileinfo": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.1.0"
 }

@@ -24,7 +24,7 @@
     "php": ">=7.3",
     "ext-fileinfo": "*",
     "dashifen/exception": "^1",
-    "ralouphie/mimey": "^2"
+    "fileeye/mimemap": "^1.1"
   },
   "suggest": {
     "ext-fileinfo": "*"

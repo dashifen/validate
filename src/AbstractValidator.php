@@ -2,8 +2,8 @@
 
 namespace Dashifen\Validator;
 
-use finfo;
-use Mimey\MimeTypes;
+use FileEye\MimeMap\Extension;
+use FileEye\MimeMap\MappingException;
 
 abstract class AbstractValidator implements ValidatorInterface
 {
@@ -81,7 +81,7 @@ abstract class AbstractValidator implements ValidatorInterface
       // feature, it can replace these messages with other data that's more
       // specific to its needs.
       
-      $messages[$field] = 'This field has a valid value.';
+      $this->messages[$field] = 'This field has a valid value.';
     }
     
     return $canValidate;
@@ -298,7 +298,7 @@ abstract class AbstractValidator implements ValidatorInterface
         ValidatorException::UNKNOWN_FIELD
       );
     }
-      
+    
     return $this->messages[$field];
   }
   
@@ -325,7 +325,7 @@ abstract class AbstractValidator implements ValidatorInterface
     // in the set somewhere and it's incomplete.  we use the reset function
     // because it rewinds the internal array pointer and returns the first
     // value in it and because it's much faster than array_shift.
-   
+    
     $completeness = array_unique($this->requirements);
     return sizeof($completeness) === 1 && reset($completeness);
   }
@@ -653,7 +653,7 @@ abstract class AbstractValidator implements ValidatorInterface
    *
    * @return bool
    */
-  protected function isDate($value, $format = "m/d/Y"): bool
+  protected function isDate($value, string $format = "m/d/Y"): bool
   {
     return !$this->isArray($value)
       
@@ -769,7 +769,7 @@ abstract class AbstractValidator implements ValidatorInterface
       
       $valid = class_exists("finfo")
         ? $this->checkFileTypeWithFinfo($name, $types)
-        : $this->checkFileTypeWithMimey($name, $types);
+        : $this->checkFileTypeWithMimeMap($name, $types);
     }
     
     return $valid;
@@ -796,8 +796,8 @@ abstract class AbstractValidator implements ValidatorInterface
     // type from there.  this should mean that even files from Macs,
     // i.e. without extensions, should be identifiable.
     
-    $info = new finfo(FILEINFO_MIME_TYPE);
-    $type = $info->file($_FILES[$name]["tmp_name"]);
+    $info = finfo_open(FILEINFO_MIME_TYPE);
+    $type = finfo_file($info, $_FILES[$name]["tmp_name"]);
     
     if ($type === false) {
       throw new ValidatorException(
@@ -812,8 +812,8 @@ abstract class AbstractValidator implements ValidatorInterface
   /**
    * checkFileTypeWithMimey
    *
-   * If the fileinfo extension is not available, this uses the Mimey library
-   * to give it a go.
+   * If the fileinfo extension is not available, this uses the fileeye/mimemap
+   * package to make a best guess at the type of our file here.
    *
    * @param string $name
    * @param array  $types
@@ -821,14 +821,13 @@ abstract class AbstractValidator implements ValidatorInterface
    * @return bool
    * @throws ValidatorException
    */
-  private function checkFileTypeWithMimey(string $name, array $types): bool
+  private function checkFileTypeWithMimeMap(string $name, array $types): bool
   {
     
     // Mimey isn't as slick as finfo because it focuses on extensions.
     // since Macs don't use extensions, this isn't foolproof.  hence,
     // the need to test and, maybe, throw an Exception.
     
-    $mimey = new MimeTypes();
     $extension = pathinfo($_FILES[$name]["name"], PATHINFO_EXTENSION);
     
     if (empty($extension)) {
@@ -838,15 +837,23 @@ abstract class AbstractValidator implements ValidatorInterface
       );
     }
     
-    $type = $mimey->getMimeType($extension);
-    
-    if (empty($type)) {
+    try {
+      $extTester = new Extension($extension);
+      $type = $extTester->getDefaultType(true);
+      return in_array($type, $types);
+    } catch (MappingException $mappingException) {
+      
+      // getDefaultType will return application/octet-stream if it can't find
+      // a MIME for the given extension unless we pass a true flag to it as we
+      // did above.  therefore, if we caught a MappingException, that means our
+      // extension could not be identified.  therefore, we'll "convert" the
+      // MimeMap exception into one of our own and throw it again.
+      
       throw new ValidatorException(
         "Cannot identify file type.",
-        ValidatorException::MIME_TYPE_NOT_FOUND
+        ValidatorException::MIME_TYPE_NOT_FOUND,
+        $mappingException
       );
     }
-    
-    return in_array($type, $types);
   }
 }
