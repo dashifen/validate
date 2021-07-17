@@ -761,6 +761,7 @@ abstract class AbstractValidator implements ValidatorInterface
     $valid = false;
     
     if ($this->isUploadedFile($name)) {
+      $path = $_FILES[$name]["tmp_name"];
       
       // the list of $types has MIME types against which we need to
       // test the uploaded file's type.  we'll have the Mimey object
@@ -768,8 +769,8 @@ abstract class AbstractValidator implements ValidatorInterface
       // extension being available.
       
       $valid = class_exists("finfo")
-        ? $this->checkFileTypeWithFinfo($name, $types)
-        : $this->checkFileTypeWithMimeMap($name, $types);
+        ? $this->checkFileTypeWithFinfo($path, $types)
+        : $this->checkFileTypeWithMimeMap($path, $types);
     }
     
     return $valid;
@@ -790,14 +791,13 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   private function checkFileTypeWithFinfo(string $name, array $types): bool
   {
-    
     // this is the preferred method to check file types because we can
-    // pass it the direct link to the file itself and it identifies the
+    // pass it the direct path to the file itself and it identifies the
     // type from there.  this should mean that even files from Macs,
     // i.e. without extensions, should be identifiable.
     
     $info = finfo_open(FILEINFO_MIME_TYPE);
-    $type = finfo_file($info, $_FILES[$name]["tmp_name"]);
+    $type = finfo_file($info, $name);
     
     if ($type === false) {
       throw new ValidatorException(
@@ -823,12 +823,13 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   private function checkFileTypeWithMimeMap(string $name, array $types): bool
   {
+    // the MimeMap package is not as robust as the file info PHP extension
+    // because it needs to know a file's extension (e.g. docx or jpg) in order
+    // to identify the type.  this means that files from Macs, which typically
+    // lack an extension, will probably confuse it.  but, if we don't have the
+    // PHP extension on this server, we'll at least try this.
     
-    // Mimey isn't as slick as finfo because it focuses on extensions.
-    // since Macs don't use extensions, this isn't foolproof.  hence,
-    // the need to test and, maybe, throw an Exception.
-    
-    $extension = pathinfo($_FILES[$name]["name"], PATHINFO_EXTENSION);
+    $extension = pathinfo($name, PATHINFO_EXTENSION);
     
     if (empty($extension)) {
       throw new ValidatorException(
@@ -838,16 +839,22 @@ abstract class AbstractValidator implements ValidatorInterface
     }
     
     try {
-      $extTester = new Extension($extension);
-      $type = $extTester->getDefaultType(true);
-      return in_array($type, $types);
+      
+      // if we have an extension, we'll try to use the getTypes method of our
+      // MimeMap package to get a list of possible types for it.  then, if
+      // there is any intersection between the possible types and the valid
+      // types that we received as our second parameter, this file's type is
+      // valid.
+  
+      $possibleTypes = (new Extension($extension))->getTypes(true);
+      return sizeof(array_intersect($types, $possibleTypes)) !== 0;
     } catch (MappingException $mappingException) {
       
-      // getDefaultType will return application/octet-stream if it can't find
-      // a MIME for the given extension unless we pass a true flag to it as we
-      // did above.  therefore, if we caught a MappingException, that means our
-      // extension could not be identified.  therefore, we'll "convert" the
-      // MimeMap exception into one of our own and throw it again.
+      // if no possible type could be found by the MimeMap package, it throws
+      // this exception.  to limit the types of exceptions that the scope using
+      // this validator needs to know about, we'll "convert" it to one of ours
+      // but include the MappingException as the previously thrown object
+      // within it.
       
       throw new ValidatorException(
         "Cannot identify file type.",
