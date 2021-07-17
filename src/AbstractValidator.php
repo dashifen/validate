@@ -2,8 +2,8 @@
 
 namespace Dashifen\Validator;
 
-use finfo;
-use Mimey\MimeTypes;
+use FileEye\MimeMap\Extension;
+use FileEye\MimeMap\MappingException;
 
 abstract class AbstractValidator implements ValidatorInterface
 {
@@ -81,7 +81,7 @@ abstract class AbstractValidator implements ValidatorInterface
       // feature, it can replace these messages with other data that's more
       // specific to its needs.
       
-      $messages[$field] = 'This field has a valid value.';
+      $this->messages[$field] = 'This field has a valid value.';
     }
     
     return $canValidate;
@@ -298,7 +298,7 @@ abstract class AbstractValidator implements ValidatorInterface
         ValidatorException::UNKNOWN_FIELD
       );
     }
-      
+    
     return $this->messages[$field];
   }
   
@@ -325,7 +325,7 @@ abstract class AbstractValidator implements ValidatorInterface
     // in the set somewhere and it's incomplete.  we use the reset function
     // because it rewinds the internal array pointer and returns the first
     // value in it and because it's much faster than array_shift.
-   
+    
     $completeness = array_unique($this->requirements);
     return sizeof($completeness) === 1 && reset($completeness);
   }
@@ -374,7 +374,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isInteger($value): bool
   {
-    
     // at first glance, we could use intval instead of floor.  then, we could
     // also tighten up our comparison by using === instead of ==.  but,
     // intval("4.0") === "4.0" would report false.  by using floor(), instead,
@@ -428,7 +427,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isZero($value): bool
   {
-    
     // like when we tested our integer, we won't use === here
     // because 0.0 === 0 is actually false.  but, 0.0 == 0 is
     // true, so that's our comparison.
@@ -449,7 +447,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isNonZero($value): bool
   {
-    
     // sometimes it's handy to test that something is not zero, just
     // like we want to test above that it is.
     
@@ -616,7 +613,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isEmptyString($value): bool
   {
-    
     // for our purposes, being comprised entirely of whitespace is
     // just as good as being empty.  so, we replace \s characters
     // with nothing and see if the length of that string is zero.
@@ -636,7 +632,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isTime($value, string $format = "g:i A"): bool
   {
-    
     // times can be validated just like dates; we just specify our
     // format when we call the other function.
     
@@ -653,7 +648,7 @@ abstract class AbstractValidator implements ValidatorInterface
    *
    * @return bool
    */
-  protected function isDate($value, $format = "m/d/Y"): bool
+  protected function isDate($value, string $format = "m/d/Y"): bool
   {
     return !$this->isArray($value)
       
@@ -712,7 +707,6 @@ abstract class AbstractValidator implements ValidatorInterface
   protected function isFileNotTooLarge(string $name, int $size): bool
   {
     $valid = false;
-    
     if ($this->isUploadedFile($name)) {
       
       // now that we know this file exists, we'll see if it's size is
@@ -737,7 +731,6 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isUploadedFile(string $name): bool
   {
-    
     // the existence of an uploaded file is determined by the existence
     // of the $name index within $_FILES.  so, this is a problem for
     // isset().
@@ -758,18 +751,42 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   protected function isUploadedFileTypeValid(string $name, ...$types): bool
   {
-    $valid = false;
+    // first, PHP will make sure that $name identifies an uploaded file.  if
+    // it doesn't, the && operation is short circuited and we return false.
+    // if it is, then we call the method below passing it the path to that
+    // uploaded file as well as our list of types and it'll take over from
+    // there.
     
-    if ($this->isUploadedFile($name)) {
+    return $this->isUploadedFile($name)
+      && $this->isFileTypeValid($_FILES[$name]["tmp_name"], $types);
+  }
+  
+  /**
+   * isFileTypeValid
+   *
+   * Given the name of a file, checks to see if its type is in the list of
+   * types.  Unlike the above method, this one is not required to be a recently
+   * uploaded file.
+   *
+   * @param string $name
+   * @param array  $types
+   *
+   * @return bool
+   * @throws ValidatorException
+   */
+  protected function isFileTypeValid(string $name, ...$types): bool
+  {
+    $valid = false;
+    if (is_file($name)) {
       
-      // the list of $types has MIME types against which we need to
-      // test the uploaded file's type.  we'll have the Mimey object
-      // to get its type since we can't always rely on the file info
-      // extension being available.
+      // the list of $types has MIME types against which we need to test the
+      // uploaded file's type.  if the PHP file info extension is available to
+      // us, we'll prefer to use that.  but, since not all servers will have it
+      // enabled, we'll fallback on the MimeMap dependency.
       
       $valid = class_exists("finfo")
         ? $this->checkFileTypeWithFinfo($name, $types)
-        : $this->checkFileTypeWithMimey($name, $types);
+        : $this->checkFileTypeWithMimeMap($name, $types);
     }
     
     return $valid;
@@ -790,14 +807,13 @@ abstract class AbstractValidator implements ValidatorInterface
    */
   private function checkFileTypeWithFinfo(string $name, array $types): bool
   {
-    
     // this is the preferred method to check file types because we can
-    // pass it the direct link to the file itself and it identifies the
+    // pass it the direct path to the file itself and it identifies the
     // type from there.  this should mean that even files from Macs,
     // i.e. without extensions, should be identifiable.
     
-    $info = new finfo(FILEINFO_MIME_TYPE);
-    $type = $info->file($_FILES[$name]["tmp_name"]);
+    $info = finfo_open(FILEINFO_MIME_TYPE);
+    $type = finfo_file($info, $name);
     
     if ($type === false) {
       throw new ValidatorException(
@@ -812,8 +828,8 @@ abstract class AbstractValidator implements ValidatorInterface
   /**
    * checkFileTypeWithMimey
    *
-   * If the fileinfo extension is not available, this uses the Mimey library
-   * to give it a go.
+   * If the fileinfo extension is not available, this uses the fileeye/mimemap
+   * package to make a best guess at the type of our file here.
    *
    * @param string $name
    * @param array  $types
@@ -821,15 +837,15 @@ abstract class AbstractValidator implements ValidatorInterface
    * @return bool
    * @throws ValidatorException
    */
-  private function checkFileTypeWithMimey(string $name, array $types): bool
+  private function checkFileTypeWithMimeMap(string $name, array $types): bool
   {
+    // the MimeMap package is not as robust as the file info PHP extension
+    // because it needs to know a file's extension (e.g. docx or jpg) in order
+    // to identify the type.  this means that files from Macs, which typically
+    // lack an extension, will probably confuse it.  but, if we don't have the
+    // PHP extension on this server, we'll at least try this.
     
-    // Mimey isn't as slick as finfo because it focuses on extensions.
-    // since Macs don't use extensions, this isn't foolproof.  hence,
-    // the need to test and, maybe, throw an Exception.
-    
-    $mimey = new MimeTypes();
-    $extension = pathinfo($_FILES[$name]["name"], PATHINFO_EXTENSION);
+    $extension = pathinfo($name, PATHINFO_EXTENSION);
     
     if (empty($extension)) {
       throw new ValidatorException(
@@ -838,15 +854,29 @@ abstract class AbstractValidator implements ValidatorInterface
       );
     }
     
-    $type = $mimey->getMimeType($extension);
-    
-    if (empty($type)) {
+    try {
+      
+      // if we have an extension, we'll try to use the getTypes method of our
+      // MimeMap package to get a list of possible types for it.  then, if
+      // there is any intersection between the possible types and the valid
+      // types that we received as our second parameter, this file's type is
+      // valid.
+      
+      $possibleTypes = (new Extension($extension))->getTypes(true);
+      return sizeof(array_intersect($types, $possibleTypes)) !== 0;
+    } catch (MappingException $mappingException) {
+      
+      // if no possible type could be found by the MimeMap package, it throws
+      // this exception.  to limit the types of exceptions that the scope using
+      // this validator needs to know about, we'll "convert" it to one of ours
+      // but include the MappingException as the previously thrown object
+      // within it.
+      
       throw new ValidatorException(
         "Cannot identify file type.",
-        ValidatorException::MIME_TYPE_NOT_FOUND
+        ValidatorException::MIME_TYPE_NOT_FOUND,
+        $mappingException
       );
     }
-    
-    return in_array($type, $types);
   }
 }
