@@ -856,4 +856,33 @@ abstract class AbstractValidator implements ValidatorInterface
       );
     }
   }
+  
+  /**
+   * isFileTypeValid
+   *
+   * Given the name of a file, checks to see if its type is in the list of
+   * types.  Unlike the above method, this one is not required to be a recently
+   * uploaded file.
+   *
+   * @param string $name
+   * @param array  $types
+   *
+   * @return bool
+   * @throws ValidatorException
+   */
+  protected function isFileTypeValid(string $name, ...$types): bool
+  {
+    $valid = false;
+    if (is_file($name)) {
+      
+      // just like above, if we have access to the PHP finfo extension, we'll
+      // use it.  otherwise, we'll fall back on the MimeMap package.
+      
+      $valid = class_exists("finfo")
+        ? $this->checkFileTypeWithFinfo($name, $types)
+        : $this->checkFileTypeWithMimeMap($name, $types);
+    }
+    
+    return $valid;
+  }
 }
