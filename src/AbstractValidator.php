@@ -103,14 +103,17 @@ abstract class AbstractValidator implements ValidatorInterface
   /**
    * isValid
    *
-   * Passed the value through a validator based on the field name.
+   * Passes the value through a validator based on the field name.  Additional
+   * information to assist with the validation of the value can follow the
+   * $value parameter and will be accumulated into the $parameters array.
    *
    * @param string $field
    * @param mixed  $value
+   * @param array  $parameters
    *
    * @return bool
    */
-  public function isValid(string $field, $value): bool
+  public function isValid(string $field, $value, ...$parameters): bool
   {
     // this is a somewhat opinionated implementation.  it assumes that if we
     // can't validate our data, that we shouldn't report that it's invalid as
@@ -121,8 +124,17 @@ abstract class AbstractValidator implements ValidatorInterface
     $isValid = true;
     if ($this->canValidate($field)) {
       $isValid = $this->isArray($value)
-        ? $this->isValidArray($value, $this->getValidationMethod($field))
-        : $this->{$this->getValidationMethod($field)}($value);
+        
+        // if we receive $parameters from the calling scope, then we want to
+        // pass them on to the validation method here.  we'll unpack the array
+        // to pass its values as separate parameters.  if the array is empty,
+        // that means no additional parameters are passed, but if there are
+        // any data within $parameters it allows the validation methods that
+        // concrete versions of this object will contain to have signatures
+        // which are similar to the way we call this method.
+        
+        ? $this->isValidArray($value, $this->getValidationMethod($field), ...$parameters)
+        : $this->{$this->getValidationMethod($field)}($value, ...$parameters);
     }
     
     if ($isValid && array_key_exists($field, $this->requirements)) {
@@ -167,20 +179,12 @@ abstract class AbstractValidator implements ValidatorInterface
   protected function isValidArray(array $values, string $function, ...$parameters): bool
   {
     foreach ($values as $value) {
-      
-      // for each $value in the array, we see if it passes the
-      // specified function.  because not all validators require
-      // additional parameters, we test to see if we should pass
-      // that information along.
-      
-      $passed = $this->isNotEmptyArray($parameters)
-        ? $this->{$function}($value, ...$parameters)
-        : $this->{$function}($value);
-      
-      // if something didn't pass the test, we return false immediately.
-      // this should save us a few nanoseconds.
-      
-      if (!$passed) {
+      if (!$this->{$function}($value, ...$parameters)) {
+        
+        // if something doesn't pass our test, then we return false
+        // immediately.  if the array is large enough, this could save us a bit
+        // of time.
+        
         return false;
       }
     }
@@ -196,15 +200,18 @@ abstract class AbstractValidator implements ValidatorInterface
    *
    * Sometimes, a value's validity is determined by its field.  This method
    * returns true based on such a relationship using the $pair parameter to
-   * identify the validation method to be used.
+   * identify the validation method to be used.  Additional information to
+   * assist with the validation of the value can follow the $value parameter
+   * and will be accumulated into the $parameters array.
    *
    * @param string $pair
    * @param string $field
    * @param mixed  $value
+   * @param array  $parameters
    *
    * @return bool
    */
-  public function isValidPair(string $pair, string $field, $value): bool
+  public function isValidPair(string $pair, string $field, $value, ...$parameters): bool
   {
     // like isValid above, this is opinionated in that the inability to
     // validate this pair shouldn't necessarily be seen as a marker of its
@@ -214,8 +221,17 @@ abstract class AbstractValidator implements ValidatorInterface
     
     if ($this->canValidate($pair)) {
       return $this->isArray($value)
-        ? $this->isValidArrayPair($field, $value, $this->getValidationMethod($pair))
-        : $this->{$this->getValidationMethod($pair)}($field, $value);
+        
+        // if we receive $parameters from the calling scope, then we want to
+        // pass them on to the validation method here.  we'll unpack the array
+        // to pass its values as separate parameters.  if the array is empty,
+        // that means no additional parameters are passed, but if there are
+        // any data within $parameters it allows the validation methods that
+        // concrete versions of this object will contain to have signatures
+        // which are similar to the way we call this method.
+        
+        ? $this->isValidArrayPair($field, $value, $this->getValidationMethod($pair), ...$parameters)
+        : $this->{$this->getValidationMethod($pair)}($field, $value, ...$parameters);
     }
     
     return true;
@@ -240,21 +256,13 @@ abstract class AbstractValidator implements ValidatorInterface
   protected function isValidArrayPair(string $field, array $values, string $function, ...$parameters): bool
   {
     foreach ($values as $value) {
-      
-      // for each $value in the array, we see if it passes the specified
-      // function.  because not all validators require additional
-      // parameters, we test to see if we should pass that information
-      // along.  note that here is where we pass the field to our
-      // validation method unlike isValidArray above.
-      
-      $passed = $this->isNotEmptyArray($parameters)
-        ? $this->{$function}($field, $value, ...$parameters)
-        : $this->{$function}($field, $value);
-      
-      // if something didn't pass the test, we return false immediately.
-      // this should save us a few nanoseconds.
-      
-      if (!$passed) {
+      if (!$this->{$function}($field, $value, ...$parameters)) {
+        
+        // if something fails our test, then we return false immediately.  for
+        // large arrays, this could save us a few nanoseconds that would be
+        // lost if we had to process the rest of the array when we've already
+        // proven it to be invalid.
+        
         return false;
       }
     }
