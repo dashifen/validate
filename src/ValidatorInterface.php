@@ -33,29 +33,35 @@ interface ValidatorInterface
    * isValid
    *
    * Returns true if our value is valid based on the a test dependent on the
-   * value's field label.
+   * value's field label.  Additional information to assist with the validation
+   * of the value can follow the $value parameter and will be accumulated into
+   * the $parameters array.
    *
    * @param string $field
    * @param mixed  $value
+   * @param array  $parameters
    *
    * @return bool
    */
-  public function isValid(string $field, $value): bool;
+  public function isValid(string $field, $value, ...$parameters): bool;
   
   /**
    * isValidPair
    *
    * Sometimes, a value's validity is determined by its field.  This method
    * returns true based on such a relationship using the $pair parameter to
-   * identify the validation method to be used.
+   * identify the validation method to be used.  Additional information to
+   * assist with the validation of the value can follow the $value parameter
+   * and will be accumulated into the $parameters array.
    *
    * @param string $pair
    * @param string $field
    * @param mixed  $value
+   * @param array  $parameters
    *
    * @return bool
    */
-  public function isValidPair(string $pair, string $field, $value): bool;
+  public function isValidPair(string $pair, string $field, $value, ...$parameters): bool;
   
   /**
    * getValidationMessages
